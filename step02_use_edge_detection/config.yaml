@@ -1,0 +1,54 @@
+# Config cho Step 02 - Edge Detection & Super Resolution
+# Cấu hình xử lý ảnh biển số: auto-cut và super resolution
+
+# Đường dẫn input/output
+paths:
+  # Input: Thư mục chứa ảnh biển số đã cắt từ Step 1
+  # Có thể là output của Step 1 hoặc thư mục tùy chỉnh
+  input_dir: "../data/output/cropped_plates_polygon"
+  
+  # Output: Thư mục lưu ảnh sau khi auto-cut (perspective correction)
+  output_cut_dir: "data/plates_after_cut/auto"
+  
+  # Output: Thư mục lưu ảnh sau khi super resolution
+  output_super_resolution_dir: "data/plates_after_cut_super_resolution/auto"
+
+# Cấu hình xử lý ảnh
+processing:
+  # Canny edge detection parameters
+  canny:
+    blur_kernel_size: 5  # Gaussian blur kernel (phải là số lẻ)
+    threshold1: 75       # Canny threshold 1
+    threshold2: 200      # Canny threshold 2
+  
+  # Contour detection
+  contour:
+    approx_epsilon: 0.02  # Epsilon cho approxPolyDP (0.02 = 2% của perimeter)
+    min_area: 100         # Diện tích tối thiểu của contour
+  
+  # Super resolution model
+  super_resolution:
+    model_name: "fsrcnn"  # Tên model: fsrcnn, espcn, edsr, lapsrn
+    scale: 4              # Scale factor: 2, 3, 4 (hoặc 8 cho lapsrn)
+    model_path: "models/super_resolution/FSRCNN_x4.pb"
+
+# Cấu hình output
+output:
+  # Format ảnh đầu ra
+  image_format: "jpg"  # jpg, png
+  
+  # Chất lượng JPEG (1-100)
+  jpeg_quality: 95
+  
+  # Có lưu ảnh trung gian (sau auto-cut) không
+  save_intermediate: true
+  
+  # Có bỏ qua ảnh nếu không tìm thấy contour không
+  skip_failed_detection: true
+
+# Logging
+logging:
+  verbose: true  # In chi tiết quá trình xử lý
+  save_log: false  # Lưu log ra file
+  log_file: "processing.log"
+

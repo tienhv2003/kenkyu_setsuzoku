@@ -1,0 +1,42 @@
+# Cấu hình cho Traffic License Plate Detector với Polygon ROI
+# Example config cho ROI dạng tứ giác/polygon
+
+# Cấu hình ROI (Region of Interest)
+roi:
+  enabled: true
+  mode: "polygon"  # "rectangle" hoặc "polygon"
+  interactive_selection: true  # Set to true để chọn ROI thủ công bằng cách click các điểm
+  
+  # Chỉ dùng khi interactive_selection = false
+  # Định nghĩa các điểm của polygon theo thứ tự (có thể 3-6 điểm)
+  # Format: [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+  points:
+    - [200, 150]   # Điểm P1 (top-left)
+    - [950, 100]   # Điểm P2 (top-right)
+    - [1100, 650]  # Điểm P3 (bottom-right)
+    - [100, 700]   # Điểm P4 (bottom-left)
+  
+  max_points: 4  # Số điểm tối đa cho polygon (dùng cho interactive mode)
+
+# Cấu hình frame sampling
+frame_sampling:
+  skip_frames: 5  # Xử lý 1 frame mỗi 5 frames
+
+# Cấu hình model
+model:
+  path: "models/best.pt"
+  confidence_threshold: 0.6
+  iou_threshold: 0.45
+
+# Cấu hình output
+output:
+  cropped_plates_dir: "data/output/cropped_plates_polygon"
+  annotated_video_path: "data/output/annotated_video_polygon.mp4"
+  plate_filename_prefix: "plate_"
+  plate_filename_counter_start: 1
+
+# Cấu hình video
+video:
+  input_fps: 30
+  output_fps: 30
+

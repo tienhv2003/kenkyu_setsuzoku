@@ -1,0 +1,24 @@
+frame_sampling:
+  skip_frames: 5
+model:
+  confidence_threshold: 0.6
+  iou_threshold: 0.45
+  path: models/best.pt
+output:
+  annotated_video_path: data/output/annotated_video_polygon.mp4
+  cropped_plates_dir: data/output/cropped_plates_polygon
+  plate_filename_counter_start: 1
+  plate_filename_prefix: plate_
+roi:
+  enabled: true
+  interactive_selection: false
+  max_points: 4
+  mode: polygon
+  points:
+    - [667, 617]
+    - [1176, 335]
+    - [1417, 345]
+    - [1141, 717]
+video:
+  input_fps: 30
+  output_fps: 30

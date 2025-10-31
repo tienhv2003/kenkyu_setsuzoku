@@ -1,0 +1,33 @@
+# Bỏ qua CHỈ ảnh trong input/output, vẫn giữ cấu trúc thư mục
+
+# Cho phép file giữ chỗ để git vẫn theo dõi thư mục
+!data/**/.gitkeep
+
+# Ảnh đầu vào (input)
+data/number/**/*.jpg
+data/number/**/*.jpeg
+data/number/**/*.png
+data/number/**/*.bmp
+data/number/**/*.gif
+data/number/**/*.webp
+data/number/**/*.tif
+data/number/**/*.tiff
+
+# Ảnh đầu ra (output)
+data/plates_after_cut/**/*.jpg
+data/plates_after_cut/**/*.jpeg
+data/plates_after_cut/**/*.png
+data/plates_after_cut/**/*.bmp
+data/plates_after_cut/**/*.gif
+data/plates_after_cut/**/*.webp
+data/plates_after_cut/**/*.tif
+data/plates_after_cut/**/*.tiff
+
+data/plates_after_cut_super_resolution/**/*.jpg
+data/plates_after_cut_super_resolution/**/*.jpeg
+data/plates_after_cut_super_resolution/**/*.png
+data/plates_after_cut_super_resolution/**/*.bmp
+data/plates_after_cut_super_resolution/**/*.gif
+data/plates_after_cut_super_resolution/**/*.webp
+data/plates_after_cut_super_resolution/**/*.tif
+data/plates_after_cut_super_resolution/**/*.tiff

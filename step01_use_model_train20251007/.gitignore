@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Data folders
+data/input/**
+!data/input/.gitkeep
+
+data/output/**
+!data/output/.gitkeep
+
+# Step 2 data
+step02_use_edge_detection/data/number/**/*.jpg
+step02_use_edge_detection/data/number/**/*.png
+step02_use_edge_detection/data/plates_after_cut/**/*.jpg
+step02_use_edge_detection/data/plates_after_cut/**/*.png
+step02_use_edge_detection/data/plates_after_cut_super_resolution/**/*.jpg
+step02_use_edge_detection/data/plates_after_cut_super_resolution/**/*.png
+
+# Keep folder structure
+!**/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
