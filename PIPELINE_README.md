@@ -2,9 +2,10 @@
 
 ## 📖 Tổng quan
 
-Pipeline này kết nối 2 bước xử lý tự động:
+Pipeline này kết nối 3 bước xử lý tự động:
 - **Step 1**: Phát hiện và cắt biển số từ video (YOLO + Polygon ROI)
 - **Step 2**: Nâng cao chất lượng ảnh (Auto-cut + Super Resolution)
+- **Step 3**: Trích xuất đặc trưng (Feature Extraction với ORB)
 
 ```
 Video giao thông
@@ -22,6 +23,13 @@ Video giao thông
   ✓ Super Resolution 4x
       ↓
 Ảnh biển số chất lượng cao
+      ↓
+[Step 3: Feature Extraction]
+  ✓ Tiền xử lý ảnh (grayscale, equalize, border)
+  ✓ Trích xuất keypoints với ORB
+  ✓ Lưu kết quả CSV
+      ↓
+Dữ liệu đặc trưng cho matching
 ```
 
 ---
@@ -32,17 +40,17 @@ Video giao thông
 
 ```bash
 # Cách đơn giản nhất
-python run_pipeline.py data/input/road1_can_cao.mp4
+python run_pipeline.py step01_use_model_train20251007/data/input/road1_can_cao.mp4
 
 # Với interactive ROI selection
-python run_pipeline.py data/input/road1_can_cao.mp4 --interactive-roi
+python run_pipeline.py step01_use_model_train20251007/data/input/road1_can_cao.mp4 --interactive-roi
 
 # Với tên run tùy chỉnh
-python run_pipeline.py data/input/road1_can_cao.mp4 --run-name test_20241030
+python run_pipeline.py step01_use_model_train20251007/data/input/road1_can_cao.mp4 --run-name test_20241030
 ```
 
 **Kết quả:**
-- Step 1 output: `data/output/cropped_plates_{run_name}/`
+- Step 1 output: `step01_use_model_train20251007/data/output/cropped_plates_{run_name}/`
 - Step 2 cut: `step02_use_edge_detection/data/plates_after_cut/{run_name}/`
 - Step 2 SR: `step02_use_edge_detection/data/plates_after_cut_super_resolution/{run_name}/`
 
@@ -52,6 +60,7 @@ python run_pipeline.py data/input/road1_can_cao.mp4 --run-name test_20241030
 
 ```bash
 # Chạy Step 1 thông thường
+cd step01_use_model_train20251007
 python main.py data/input/road1_can_cao.mp4
 
 # Với interactive ROI selection
@@ -69,17 +78,17 @@ Nếu bạn đã có ảnh biển số từ Step 1 hoặc nguồn khác:
 
 ```bash
 # Cách 1: Dùng script standalone
-python run_step2_only.py data/output/cropped_plates_polygon
+python run_step2_only.py step01_use_model_train20251007/data/output/cropped_plates_polygon
 
 # Cách 2: Chạy trực tiếp
 cd step02_use_edge_detection
-python main.py --input ../data/output/cropped_plates_polygon
+python main.py --input ../step01_use_model_train20251007/data/output/cropped_plates_polygon
 
 # Chỉ auto-cut, bỏ qua super resolution
-python run_step2_only.py data/output/cropped_plates_polygon --skip-super-resolution
+python run_step2_only.py step01_use_model_train20251007/data/output/cropped_plates_polygon --skip-super-resolution
 
 # Chỉ super resolution, bỏ qua auto-cut
-python run_step2_only.py data/output/cropped_plates_polygon --skip-auto-cut
+python run_step2_only.py step01_use_model_train20251007/data/output/cropped_plates_polygon --skip-auto-cut
 ```
 
 ---
@@ -90,7 +99,7 @@ Nếu bạn đã chạy Step 1 trước đó:
 
 ```bash
 # Chỉ chạy Step 2 với output có sẵn
-python run_pipeline.py --skip-step1 --step1-output data/output/cropped_plates_polygon
+python run_pipeline.py --skip-step1 --step1-output step01_use_model_train20251007/data/output/cropped_plates_polygon
 ```
 
 ---
@@ -139,30 +148,32 @@ processing:
 ## 📁 Cấu trúc thư mục
 
 ```
-project_root/
-├── main.py                          # Step 1 entry point
+project_root/                        ← Working directory
 ├── run_pipeline.py                  # Pipeline script (Step 1 → Step 2)
 ├── run_step2_only.py                # Step 2 standalone script
+├── restructure_project.py           # Migration script
 ├── PIPELINE_README.md               # Tài liệu này
+├── QUICKSTART.md                    # Hướng dẫn nhanh
 │
-├── src/                             # Step 1 source code
-│   ├── video_processor.py
-│   ├── model_inference.py
-│   ├── polygon_roi_manager.py
-│   └── ...
+├── step01_use_model_train20251007/  # Step 1: Detection
+│   ├── main.py                      # Step 1 entry point
+│   ├── src/                         # Step 1 source code
+│   │   ├── video_processor.py
+│   │   ├── model_inference.py
+│   │   ├── polygon_roi_manager.py
+│   │   └── ...
+│   ├── config/                      # Step 1 configs
+│   │   ├── config_polygon_example.yaml
+│   │   └── config_polygon_saved.yaml
+│   ├── models/
+│   │   └── best.pt                  # YOLO model
+│   └── data/
+│       ├── input/                   # Video đầu vào
+│       └── output/                  # Step 1 output
+│           ├── cropped_plates_*/    # Ảnh biển số đã cắt
+│           └── annotated_video_*.mp4 # Video có annotations
 │
-├── config/                          # Step 1 configs
-│   ├── config_polygon_example.yaml
-│   └── config_polygon_saved.yaml
-│
-├── data/
-│   ├── input/                       # Video đầu vào
-│   │   └── road1_can_cao.mp4
-│   └── output/                      # Step 1 output
-│       ├── cropped_plates_polygon/  # Ảnh biển số đã cắt
-│       └── annotated_video.mp4      # Video có annotations
-│
-└── step02_use_edge_detection/       # Step 2 project
+└── step02_use_edge_detection/       # Step 2: Enhancement (ngang hàng)
     ├── main.py                      # Step 2 entry point
     ├── config.yaml                  # Step 2 config
     ├── modules/
@@ -171,9 +182,9 @@ project_root/
     │   └── utils.py
     ├── models/
     │   └── super_resolution/
-    │       └── FSRCNN_x4.pb
+    │       └── FSRCNN_x4.pb         # Super resolution model
     └── data/
-        ├── plates_after_cut/        # Ảnh sau auto-cut
+        ├── plates_after_cut/         # Ảnh sau auto-cut
         └── plates_after_cut_super_resolution/  # Ảnh sau SR
 ```
 
@@ -185,12 +196,12 @@ project_root/
 
 ```bash
 # Bước 1: Chạy full pipeline với interactive ROI
-python run_pipeline.py data/input/new_video.mp4 --interactive-roi --run-name video_20241030
+python run_pipeline.py step01_use_model_train20251007/data/input/new_video.mp4 --interactive-roi --run-name video_20241030
 
 # Kết quả:
-# ✓ data/output/cropped_plates_video_20241030/  (298 ảnh)
-# ✓ step02.../plates_after_cut/video_20241030/  (245 ảnh)
-# ✓ step02.../plates_after_cut_super_resolution/video_20241030/  (245 ảnh)
+# ✓ step01_use_model_train20251007/data/output/cropped_plates_video_20241030/  (298 ảnh)
+# ✓ step02_use_edge_detection/data/plates_after_cut/video_20241030/  (245 ảnh)
+# ✓ step02_use_edge_detection/data/plates_after_cut_super_resolution/video_20241030/  (245 ảnh)
 ```
 
 ### **Example 2: Chạy lại Step 2 với params khác**
@@ -198,7 +209,7 @@ python run_pipeline.py data/input/new_video.mp4 --interactive-roi --run-name vid
 ```bash
 # Đã có output Step 1, muốn thử model SR khác
 cd step02_use_edge_detection
-python main.py --input ../data/output/cropped_plates_polygon \
+python main.py --input ../step01_use_model_train20251007/data/output/cropped_plates_polygon \
                --output-sr data/output/sr_edsr \
                --skip-auto-cut
 ```
@@ -207,7 +218,7 @@ python main.py --input ../data/output/cropped_plates_polygon \
 
 ```bash
 # Tạo script batch
-for video in data/input/*.mp4; do
+for video in step01_use_model_train20251007/data/input/*.mp4; do
     echo "Processing $video"
     python run_pipeline.py "$video" --run-name "$(basename $video .mp4)"
 done
@@ -219,10 +230,12 @@ done
 
 | Step | Output | Mô tả |
 |------|--------|-------|
-| **Step 1** | `data/output/cropped_plates_{name}/` | Ảnh biển số đã cắt từ video |
-| **Step 1** | `data/output/annotated_video_{name}.mp4` | Video có annotations |
-| **Step 2** | `step02.../plates_after_cut/{name}/` | Ảnh sau auto-cut (perspective corrected) |
-| **Step 2** | `step02.../plates_after_cut_super_resolution/{name}/` | Ảnh sau super resolution 4x |
+| **Step 1** | `step01_use_model_train20251007/data/output/cropped_plates_{name}/` | Ảnh biển số đã cắt từ video |
+| **Step 1** | `step01_use_model_train20251007/data/output/annotated_video_{name}.mp4` | Video có annotations |
+| **Step 2** | `step02_use_edge_detection/data/plates_after_cut/{name}/` | Ảnh sau auto-cut (perspective corrected) |
+| **Step 2** | `step02_use_edge_detection/data/plates_after_cut_super_resolution/{name}/` | Ảnh sau super resolution 4x |
+| **Step 3** | `step03_feature_extractor_matcher/output/{name}/keypoints_count.csv` | CSV chứa số lượng keypoints |
+| **Step 3** | `step03_feature_extractor_matcher/output/{name}/preprocessed/` | Ảnh đã tiền xử lý (grayscale, equalized, bordered) |
 
 ---
 
@@ -235,6 +248,7 @@ Options:
   input_video              Video đầu vào (required unless --skip-step1)
   --skip-step1             Bỏ qua Step 1
   --skip-step2             Bỏ qua Step 2
+  --skip-step3             Bỏ qua Step 3 (feature extraction)
   --step1-config PATH      Config cho Step 1
   --step1-output PATH      Output folder của Step 1
   --step2-config PATH      Config cho Step 2
@@ -242,6 +256,9 @@ Options:
   --roi-frame N            Frame để chọn ROI (default: 0)
   --skip-auto-cut          Bỏ qua auto-cut trong Step 2
   --skip-super-resolution  Bỏ qua super resolution
+  --step3-input PATH       Input folder cho Step 3 (mặc định: output Step 2 SR)
+  --step3-output PATH      Output folder cho Step 3
+  --step3-scale-factor N   Scale factor cho Step 3 (default: 1.0)
   --run-name NAME          Tên cho run (dùng để đặt tên folders)
 ```
 
@@ -274,9 +291,10 @@ ls step02_use_edge_detection/models/super_resolution/FSRCNN_x4.pb
 
 ```bash
 # Kiểm tra output của Step 1
-ls data/output/cropped_plates_polygon/
+ls step01_use_model_train20251007/data/output/cropped_plates_polygon/
 
 # Chạy lại Step 1 nếu cần
+cd step01_use_model_train20251007
 python main.py data/input/road1_can_cao.mp4 --interactive-roi
 ```
 
@@ -324,7 +342,7 @@ model:
 
 ```bash
 # Đặt tên run có ý nghĩa
-python run_pipeline.py data/input/video.mp4 --run-name "location_date_time"
+python run_pipeline.py step01_use_model_train20251007/data/input/video.mp4 --run-name "location_date_time"
 
 # Ví dụ: hanoi_road1_20241030_morning
 ```

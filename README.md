@@ -12,8 +12,8 @@ connecting/
 ├── run_step2_only.py                    # Step 2 standalone
 ├── restructure_project.py               # Migration tool
 ├── README.md                            # This file
-├── PIPELINE_README_v2.md                # Full documentation
-├── QUICKSTART.md                        # Quick start guide
+├── PIPELINE_README.md                   # Tài liệu đầy đủ
+├── QUICKSTART.md                        # Hướng dẫn nhanh
 └── MIGRATION_GUIDE.md                   # Migration guide
 ```
 
@@ -34,7 +34,7 @@ python run_pipeline.py step01_use_model_train20251007/data/input/road1_can_cao.m
 ## 📖 Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** - Hướng dẫn nhanh (5 phút)
-- **[PIPELINE_README_v2.md](PIPELINE_README_v2.md)** - Tài liệu đầy đủ
+- **[PIPELINE_README.md](PIPELINE_README.md)** - Tài liệu đầy đủ
 - **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Hướng dẫn migration
 - **[step01_use_model_train20251007/README.md](step01_use_model_train20251007/README.md)** - Step 1 docs
 - **[step01_use_model_train20251007/INSTALLATION.md](step01_use_model_train20251007/INSTALLATION.md)** - Installation guide
@@ -61,6 +61,15 @@ Cropped License Plates
 └─────────────────────────┘
     ↓
 High-Quality Plates
+    ↓
+┌─────────────────────────┐
+│  Step 3: Feature Extract│
+│  - Preprocessing         │
+│  - ORB keypoints        │
+│  - CSV output           │
+└─────────────────────────┘
+    ↓
+Feature Data
 ```
 
 ## 💻 Usage Examples
@@ -92,10 +101,18 @@ done
 
 ```bash
 # Python 3.8+
-pip install ultralytics opencv-python numpy PyYAML Pillow
+pip install -r requirements.txt
 ```
 
-See [step01_use_model_train20251007/requirements.txt](step01_use_model_train20251007/requirements.txt)
+**Lưu ý:** Project này cần `opencv-contrib-python` (không phải `opencv-python`) để có module super resolution.
+
+```bash
+# Nếu đã cài opencv-python, gỡ bỏ trước:
+pip uninstall opencv-python
+pip install opencv-contrib-python>=4.8.0
+```
+
+📖 **Xem [HUONG_DAN_CAI_DAT.md](HUONG_DAN_CAI_DAT.md) để biết chi tiết cài đặt**
 
 ## 🎯 Features
 
@@ -113,6 +130,12 @@ See [step01_use_model_train20251007/requirements.txt](step01_use_model_train2025
 - ✅ FSRCNN model (fast & accurate)
 - ✅ Batch processing
 
+### Step 3 - Feature Extraction
+- ✅ Image preprocessing (grayscale, histogram equalization)
+- ✅ ORB keypoint detection
+- ✅ CSV output with keypoint counts
+- ✅ Preprocessed image saving
+
 ## 📊 Outputs
 
 | Step | Location | Content |
@@ -121,6 +144,8 @@ See [step01_use_model_train20251007/requirements.txt](step01_use_model_train2025
 | Step 1 | `step01.../data/output/annotated_video_{name}.mp4` | Annotated video |
 | Step 2 | `step02.../data/plates_after_cut/{name}/` | Perspective-corrected images |
 | Step 2 | `step02.../data/plates_after_cut_super_resolution/{name}/` | Super-resolution images |
+| Step 3 | `step03.../output/{name}/keypoints_count.csv` | Keypoint counts CSV |
+| Step 3 | `step03.../output/{name}/preprocessed/` | Preprocessed images |
 
 ## 🆕 Migration from Old Structure
 

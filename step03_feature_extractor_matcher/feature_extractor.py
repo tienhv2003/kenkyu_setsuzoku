@@ -2,7 +2,7 @@ import cv2
 import os
 import csv
 
-def process_folder(folder_path, output_csv, scale_factor=1.0):
+def process_folder(folder_path, output_csv, scale_factor=1.0, preprocessed_dir=None):
     """
     Xử lý tất cả ảnh trong thư mục và ghi số lượng keypoints vào CSV.
     
@@ -10,6 +10,8 @@ def process_folder(folder_path, output_csv, scale_factor=1.0):
         folder_path (str): Thư mục chứa ảnh
         output_csv (str): File CSV đầu ra
         scale_factor (float): Hệ số phóng to ảnh (mặc định 1.0 = không phóng to)
+        preprocessed_dir (str, optional): Thư mục lưu ảnh đã preprocess. 
+                                         Nếu None, dùng 'output/preprocessed' (relative to current dir)
     """
     orb = cv2.ORB_create()
 
@@ -18,7 +20,8 @@ def process_folder(folder_path, output_csv, scale_factor=1.0):
         writer.writerow(["filename", "num_keypoints"])
         
         # Thư mục lưu ảnh sau khi chuyển xám + tăng tương phản
-        preprocessed_dir = os.path.join('output', 'preprocessed')
+        if preprocessed_dir is None:
+            preprocessed_dir = os.path.join('output', 'preprocessed')
         os.makedirs(preprocessed_dir, exist_ok=True)
         
         for filename in os.listdir(folder_path):

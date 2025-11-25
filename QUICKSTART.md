@@ -4,8 +4,9 @@
 
 ```
 connecting/
-├── step01_use_model_train20251007/  ← Step 1
-├── step02_use_edge_detection/       ← Step 2 (ngang hàng)
+├── step01_use_model_train20251007/  ← Step 1: Detection
+├── step02_use_edge_detection/       ← Step 2: Enhancement
+├── step03_feature_extractor_matcher/ ← Step 3: Feature Extraction
 ├── run_pipeline.py                  ← Pipeline
 └── QUICKSTART.md                    ← File này
 ```
@@ -113,5 +114,5 @@ python run_pipeline.py step01_use_model_train20251007/data/input/video.mp4
 
 ---
 
-📖 Xem [PIPELINE_README_v2.md](PIPELINE_README_v2.md) để biết chi tiết đầy đủ
+📖 Xem [PIPELINE_README.md](PIPELINE_README.md) để biết chi tiết đầy đủ
 
