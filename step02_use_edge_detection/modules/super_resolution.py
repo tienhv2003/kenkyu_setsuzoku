@@ -3,7 +3,12 @@ import cv2.dnn_superres
 import numpy as np
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Tính BASE_DIR từ vị trí file hiện tại (dùng realpath để đảm bảo đường dẫn đúng)
+# __file__ = step02_use_edge_detection/modules/super_resolution.py
+# dirname(__file__) = step02_use_edge_detection/modules
+# dirname(dirname(__file__)) = step02_use_edge_detection
+_file_path = os.path.realpath(__file__)  # Dùng realpath thay vì abspath để resolve đúng
+BASE_DIR = os.path.dirname(os.path.dirname(_file_path))
 DEFAULT_MODEL_PATH = os.path.join(BASE_DIR, "models", "super_resolution", "FSRCNN_x4.pb")
 
 # Global model instance (để tránh load lại nhiều lần)
@@ -25,10 +30,40 @@ def load_super_resolution_model(model_path=None, model_name="fsrcnn", scale=4):
     if model_path is None:
         model_path = DEFAULT_MODEL_PATH
     
+    # Normalize đường dẫn và convert sang absolute path
+    model_path = os.path.normpath(os.path.abspath(model_path))
+    
     if not os.path.exists(model_path):
+        # In thông tin debug để dễ tìm lỗi
+        print(f"[ERROR] Model file not found: {model_path}")
+        print(f"[DEBUG] BASE_DIR: {BASE_DIR}")
+        print(f"[DEBUG] DEFAULT_MODEL_PATH: {DEFAULT_MODEL_PATH}")
+        print(f"[DEBUG] __file__: {__file__}")
+        print(f"[DEBUG] realpath(__file__): {os.path.realpath(__file__)}")
         raise FileNotFoundError(f"Model file not found: {model_path}")
     
+    # Kiểm tra file có thể đọc được không
+    try:
+        with open(model_path, 'rb') as f:
+            f.read(1)  # Đọc 1 byte để test
+    except Exception as e:
+        raise FileNotFoundError(f"Cannot read model file: {model_path}. Error: {e}")
+    
+    # Trên Windows, OpenCV có thể có vấn đề với đường dẫn Unicode
+    # Convert sang short path nếu cần (Windows only)
+    if os.name == 'nt':  # Windows
+        try:
+            import win32api
+            model_path = win32api.GetShortPathName(model_path)
+        except ImportError:
+            # Nếu không có pywin32, thử dùng đường dẫn gốc
+            pass
+        except Exception:
+            # Nếu GetShortPathName fail, dùng đường dẫn gốc
+            pass
+    
     model = cv2.dnn_superres.DnnSuperResImpl_create()
+    # Dùng đường dẫn đã normalize
     model.readModel(model_path)
     model.setModel(model_name.lower(), scale)
     

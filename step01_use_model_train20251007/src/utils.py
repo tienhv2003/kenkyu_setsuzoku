@@ -68,28 +68,3 @@ def resolve_path(path_str: str) -> str:
     root = get_project_root()
     return str((root / path).resolve())
 
-
-def validate_roi_coordinates(x1: int, y1: int, x2: int, y2: int) -> bool:
-    """
-    Validate ROI coordinates
-    
-    Args:
-        x1, y1, x2, y2 (int): ROI coordinates
-        
-    Returns:
-        bool: True if coordinates are valid
-    """
-    return x1 < x2 and y1 < y2 and x1 >= 0 and y1 >= 0
-
-
-def format_confidence(confidence: float) -> str:
-    """
-    Format confidence score for display
-    
-    Args:
-        confidence (float): Confidence score
-        
-    Returns:
-        str: Formatted confidence string
-    """
-    return f"{confidence:.2f}"

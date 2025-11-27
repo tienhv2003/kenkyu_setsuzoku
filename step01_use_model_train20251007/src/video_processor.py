@@ -6,9 +6,9 @@ Simplified version chỉ support Polygon ROI
 import cv2
 import os
 import numpy as np
-from typing import Optional, Tuple
 from .model_inference import LicensePlateDetector
 from .polygon_roi_manager import PolygonROIManager
+from .simple_plate_tracker import SimplePlateTracker, Track
 from .utils import ensure_directory_exists, resolve_path
 
 
@@ -27,6 +27,7 @@ class VideoProcessor:
         self.config = config
         self.detector = None
         self.roi_manager = None
+        self.tracker = None
         self.setup_components()
     
     def setup_components(self) -> None:
@@ -61,6 +62,20 @@ class VideoProcessor:
         
         # Ensure output directories exist
         ensure_directory_exists(self.config['output']['cropped_plates_dir'])
+        
+        # Initialize Tracker
+        tracking_config = self.config.get('tracking', {})
+        if tracking_config.get('enabled', False):
+            print("\n=== Initializing Tracker ===")
+            self.tracker = SimplePlateTracker(
+                max_age=tracking_config.get('max_age', 8),
+                min_hits=tracking_config.get('min_hits', 2),
+                iou_threshold=tracking_config.get('iou_threshold', 0.35)
+            )
+            print("✅ Tracking enabled: Duplicate plates will be filtered\n")
+        else:
+            self.tracker = None
+            print("ℹ️  Tracking disabled: All detections will be saved\n")
     
     def setup_roi_interactive(self, video_path: str, frame_number: int = 0, max_points: int = 4) -> bool:
         """
@@ -226,7 +241,7 @@ class VideoProcessor:
                 print(f"Processing frame {frame_count}/{total_frames} (processed: {processed_frames})")
                 
                 # Process frame
-                processed_frame = self.process_frame(frame, plate_counter)
+                processed_frame = self.process_frame(frame, plate_counter, frame_count)
                 
                 # Write processed frame to output video
                 if out is not None:
@@ -249,6 +264,15 @@ class VideoProcessor:
             print("Processing interrupted by user")
         
         finally:
+            # Lưu remaining track khi video kết thúc (nếu có tracking)
+            if self.tracker is not None and getattr(self.tracker, "active_track", None) is not None:
+                print("\n=== Video ended, saving remaining active track (if valid) ===")
+                track = self.tracker.active_track
+                if track.is_confirmed(self.tracker.min_hits) and track.best_cropped is not None:
+                    self._save_tracked_plate(track.best_cropped, plate_counter, track)
+                    plate_counter += 1
+                    print(f"  💾 Saved remaining Track {track.track_id}")
+            
             # Cleanup
             cap.release()
             if out is not None:
@@ -259,63 +283,73 @@ class VideoProcessor:
             print(f"Processing completed!")
             print(f"Total frames processed: {processed_frames}")
             print(f"License plates saved: {plate_counter - self.config['output']['plate_filename_counter_start']}")
-            print(f"Annotated video saved to: {output_config['annotated_video_path']}")
+            # Use resolved absolute path for display
+            annotated_path = resolve_path(output_config['annotated_video_path'])
+            print(f"Annotated video saved to: {annotated_path}")
     
-    def process_frame(self, frame: np.ndarray, plate_counter: int) -> np.ndarray:
+    def process_frame(self, frame: np.ndarray, plate_counter: int, frame_number: int = 0) -> np.ndarray:
         """
-        Process a single frame with Polygon ROI
+        Process a single frame with Polygon ROI and optional Tracking
         
         Args:
             frame (np.ndarray): Input frame
             plate_counter (int): Current plate counter for naming
+            frame_number (int): Current frame number (for tracking)
             
         Returns:
             np.ndarray: Processed frame with annotations
         """
-        # Extract ROI if enabled
-        offset = (0, 0)
-        if self.roi_manager:
-            # Polygon ROI returns tuple (roi_frame, offset)
-            roi_frame, offset = self.roi_manager.extract_roi(frame)
-        else:
-            roi_frame = frame
-        
-        # Detect license plates in ROI
-        detections = self.detector.detect_license_plates(roi_frame)
+        # 1. Detect license plates
+        detections = self.detector.detect_license_plates(frame)
         
         # Print detection info (before filtering)
         if detections:
-            print(f"  Found {len(detections)} license plate(s) in ROI")
+            print(f"  Found {len(detections)} license plate(s) in frame")
             for i, detection in enumerate(detections):
                 x1, y1, x2, y2, confidence, class_id = detection
                 print(f"    Detection {i+1}: confidence={confidence:.3f}, bbox=({x1},{y1},{x2},{y2})")
         
-        # Adjust coordinates and filter by polygon
+        # 2. Filter detections by polygon ROI
         if self.roi_manager:
-            detections = self.roi_manager.adjust_detection_coordinates(detections, offset)
+            frame_shape = (frame.shape[0], frame.shape[1])  # (height, width)
+            detections = self.roi_manager.filter_detections(detections, frame_shape)
             print(f"  After polygon filtering: {len(detections)} detection(s)")
         
-        # Save cropped license plates
-        plates_saved = 0
-        for detection in detections:
-            cropped_plate = self.detector.crop_license_plate(frame, detection)
-            if cropped_plate is not None:
-                self.save_cropped_plate(cropped_plate, plate_counter)
-                plate_counter += 1
-                plates_saved += 1
-        
-        if plates_saved > 0:
-            print(f"  Saved {plates_saved} license plate image(s)")
-        
-        # Draw detections on frame
-        annotated_frame = self.detector.draw_detections(frame, detections)
-        
-        # Add detection count info to frame
-        if detections:
-            cv2.putText(annotated_frame, f"Detections: {len(detections)}", 
+        # 3. TRACKING LOGIC (IF ENABLED)
+        if self.tracker is not None:
+            plates_saved = self._process_with_tracking(frame, detections, 
+                                                        plate_counter, frame_number)
+            # Draw tracks
+            annotated_frame = self._draw_tracks(frame)
+            
+            # Add track count info
+            stats = self.tracker.get_stats()
+            cv2.putText(annotated_frame, 
+                       f"Active: {stats['active_tracks']} | Confirmed: {stats['confirmed_tracks']}", 
                        (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
-        # Draw Polygon ROI overlay
+        # 4. NO TRACKING (FALLBACK - ORIGINAL LOGIC)
+        else:
+            plates_saved = 0
+            for detection in detections:
+                cropped_plate = self.detector.crop_license_plate(frame, detection)
+                if cropped_plate is not None:
+                    self.save_cropped_plate(cropped_plate, plate_counter)
+                    plate_counter += 1
+                    plates_saved += 1
+            
+            if plates_saved > 0:
+                print(f"  Saved {plates_saved} license plate image(s)")
+            
+            # Draw detections
+            annotated_frame = self.detector.draw_detections(frame, detections)
+            
+            # Add detection count
+            if detections:
+                cv2.putText(annotated_frame, f"Detections: {len(detections)}", 
+                           (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        
+        # 5. Draw Polygon ROI overlay
         if self.roi_manager:
             annotated_frame = self.roi_manager.draw_roi_overlay(annotated_frame)
         
@@ -339,4 +373,114 @@ class VideoProcessor:
             print(f"Saved license plate: {filename}")
         except Exception as e:
             print(f"Error saving license plate {filename}: {e}")
+    
+    # ========== TRACKING METHODS ==========
+    
+    def _process_with_tracking(self, frame: np.ndarray, detections: list, 
+                              plate_counter: int, frame_number: int) -> int:
+        """
+        Xử lý detections với tracking để loại bỏ duplicate
+        
+        Args:
+            frame: Current frame
+            detections: List of detections
+            plate_counter: Current plate counter
+            frame_number: Current frame number
+        
+        Returns:
+            Number of plates saved
+        """
+        # Update tracker
+        active_tracks, completed_tracks = self.tracker.update(detections, frame_number)
+        
+        # Crop và cache ảnh cho active tracks
+        for track in active_tracks:
+            # Tạo detection tuple từ track bbox
+            det_tuple = (*track.bbox, track.confidence, 0)
+            cropped = self.detector.crop_license_plate(frame, det_tuple)
+            
+            # Lưu ảnh nếu đây là best frame
+            if cropped is not None and track.confidence == track.best_confidence:
+                track.best_cropped = cropped
+        
+        # Lưu ảnh cho completed tracks
+        plates_saved = 0
+        for track in completed_tracks:
+            if track.best_cropped is not None:
+                # Tạo filename với track_id
+                self._save_tracked_plate(track.best_cropped, plate_counter, track)
+                plate_counter += 1
+                plates_saved += 1
+                
+                print(f"  💾 Saved Track {track.track_id}: "
+                      f"conf={track.best_confidence:.3f}, "
+                      f"hits={track.hits}, "
+                      f"frames=[{track.first_frame}-{track.last_frame}]")
+        
+        if plates_saved > 0:
+            print(f"  Total saved this frame: {plates_saved} plate(s)")
+        
+        return plates_saved
+    
+    def _save_tracked_plate(self, cropped_plate: np.ndarray, plate_counter: int, 
+                           track: Track) -> None:
+        """
+        Lưu ảnh biển số từ track với metadata
+        
+        Args:
+            cropped_plate: Cropped plate image
+            plate_counter: Plate counter
+            track: Track object
+        """
+        output_dir = resolve_path(self.config['output']['cropped_plates_dir'])
+        prefix = self.config['output']['plate_filename_prefix']
+        
+        # Format: plate_001_track005_conf087.jpg
+        filename = (f"{prefix}{plate_counter:03d}_"
+                   f"track{track.track_id:03d}_"
+                   f"conf{int(track.best_confidence*100):03d}.jpg")
+        filepath = os.path.join(output_dir, filename)
+        
+        try:
+            cv2.imwrite(filepath, cropped_plate)
+            print(f"    → {filename}")
+        except Exception as e:
+            print(f"    ❌ Error saving {filename}: {e}")
+    
+    def _draw_tracks(self, frame: np.ndarray) -> np.ndarray:
+        """
+        Vẽ tracks lên frame
+        
+        Args:
+            frame: Input frame
+        
+        Returns:
+            Annotated frame
+        """
+        annotated_frame = frame.copy()
+        
+        # Màu sắc cho track active
+        color = (0, 255, 0)  # Green
 
+        # Vẽ chỉ 1 track active nếu đã confirmed
+        if self.tracker is not None and getattr(self.tracker, "active_track", None) is not None:
+            track = self.tracker.active_track
+            if track.is_confirmed(self.tracker.min_hits):
+                x1, y1, x2, y2 = map(int, track.bbox)
+                
+                # Vẽ bbox
+                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 2)
+                
+                # Vẽ label
+                label = f"ID:{track.track_id} | {track.confidence:.2f} | H:{track.hits}"
+                (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                
+                # Background cho text
+                cv2.rectangle(annotated_frame, (x1, y1 - text_h - 10), 
+                             (x1 + text_w, y1), color, -1)
+                
+                # Text
+                cv2.putText(annotated_frame, label, (x1, y1 - 5),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        
+        return annotated_frame

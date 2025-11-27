@@ -22,3 +22,9 @@ roi:
 video:
   input_fps: 30
   output_fps: 30
+tracking:
+  enabled: true
+  iou_threshold: 0.35
+  max_age: 8
+  min_hits: 2
+  save_best: true

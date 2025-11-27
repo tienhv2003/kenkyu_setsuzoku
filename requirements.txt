@@ -1,0 +1,17 @@
+# Traffic License Plate Processing Pipeline - Requirements
+# Python 3.8+ required
+
+# Core dependencies for Step 1 (YOLO Detection)
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+PyYAML>=6.0
+Pillow>=9.0.0
+
+# Additional dependency for Step 2 (Super Resolution)
+# Note: opencv-contrib-python includes dnn_superres module
+# If you have opencv-python installed, uninstall it first:
+# pip uninstall opencv-python
+# Then install opencv-contrib-python
+opencv-contrib-python>=4.8.0
+

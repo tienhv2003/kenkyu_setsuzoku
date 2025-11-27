@@ -1,3 +1,4 @@
+# CURSOR: DO NOT MODIFY THIS FILE
 """
 Polygon ROI Selector Module
 Cho phép người dùng chọn ROI dạng polygon bằng cách click các điểm trên video
