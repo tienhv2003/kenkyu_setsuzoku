@@ -18,8 +18,38 @@ processing:
   # Canny edge detection parameters
   canny:
     blur_kernel_size: 5  # Gaussian blur kernel (phải là số lẻ)
-    threshold1: 75       # Canny threshold 1
-    threshold2: 200      # Canny threshold 2
+    
+    # Threshold cố định (dùng khi adaptive_threshold = false)
+    threshold1: 75       # Canny threshold 1 (low threshold)
+    threshold2: 200      # Canny threshold 2 (high threshold)
+    
+    # Tự động điều chỉnh threshold theo từng ảnh
+    adaptive_threshold: true  # Bật/tắt adaptive threshold (true/false)
+    adaptive_method: "percentile"  # Phương pháp: "percentile", "median", "otsu"
+    
+    # Cấu hình cho adaptive threshold (method = "percentile")
+    adaptive_low_percentile: 10   # Percentile thấp cho threshold1 (0-100)
+    adaptive_high_percentile: 30  # Percentile cao cho threshold2 (0-100)
+    
+    # Tỷ lệ giữa threshold2 và threshold1 (dùng cho method = "median" hoặc "otsu")
+    threshold_ratio: 2.67  # Tỷ lệ threshold2/threshold1 (mặc định: 200/75 ≈ 2.67)
+    
+    # Giới hạn giá trị threshold (để tránh quá thấp hoặc quá cao)
+    min_threshold1: 30   # Giá trị tối thiểu cho threshold1
+    max_threshold1: 150  # Giá trị tối đa cho threshold1
+    min_threshold2: 80   # Giá trị tối thiểu cho threshold2
+    max_threshold2: 300  # Giá trị tối đa cho threshold2
+    
+    # Margin để mở rộng vùng cắt (bỏ phần cắt viền thừa)
+    # 0.0 = cắt sát biển số (như cũ)
+    # 0.1-1.0 = margin theo tỷ lệ (ví dụ: 0.2 = 20% mỗi bên)
+    # >1.0 = margin theo pixel (ví dụ: 10 = 10 pixel mỗi bên)
+    crop_margin: 0.2  # Mặc định 20% margin để giữ lại nhiều thông tin hơn
+    
+    # Bỏ qua Canny edge detection (chỉ copy ảnh, không xử lý)
+    # true = bỏ qua Canny, copy ảnh trực tiếp (dùng khi nhiều ảnh không detect được)
+    # false = dùng Canny edge detection (mặc định)
+    skip_canny_detection: true  # BẬT để bỏ qua Canny, giữ lại tất cả ảnh
   
   # Contour detection
   contour:

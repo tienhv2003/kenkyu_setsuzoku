@@ -223,6 +223,46 @@ Examples:
         help='Scale factor cho Step 3 (default: 1.0)'
     )
     
+    parser.add_argument(
+        '--skip-duplicate-removal',
+        action='store_true',
+        help='Bỏ qua bước xóa ảnh trùng lặp trong Step 3'
+    )
+    
+    parser.add_argument(
+        '--step3-similarity-threshold',
+        type=float,
+        default=0.5,
+        help='Ngưỡng similarity để coi là ảnh trùng lặp (0.0-1.0, default: 0.5, càng cao càng strict)'
+    )
+    
+    parser.add_argument(
+        '--step3-min-matches',
+        type=int,
+        default=15,
+        help='Số matches tối thiểu giữa 2 ảnh để coi là trùng lặp (default: 15)'
+    )
+    
+    parser.add_argument(
+        '--step3-match-ratio',
+        type=float,
+        default=0.75,
+        help='Tỷ lệ match cho Lowe\'s ratio test (default: 0.75)'
+    )
+    
+    parser.add_argument(
+        '--step3-backup-duplicates',
+        action='store_true',
+        default=True,
+        help='Backup ảnh trùng lặp vào thư mục riêng (default: True)'
+    )
+    
+    parser.add_argument(
+        '--step3-no-backup-duplicates',
+        action='store_true',
+        help='Không backup ảnh trùng lặp, xóa trực tiếp'
+    )
+    
     # General options
     parser.add_argument(
         '--run-name',
@@ -519,6 +559,38 @@ Examples:
                         scale_factor=args.step3_scale_factor,
                         preprocessed_dir=str(relative_preprocessed)
                     )
+                    
+                    # Bước 2: Remove duplicate images
+                    if not args.skip_duplicate_removal:
+                        print(f"\n>> REMOVING DUPLICATE IMAGES")
+                        from duplicate_remover import remove_duplicates
+                        
+                        # Xác định output CSV cho duplicate removal
+                        step3_duplicate_csv = step3_output_dir / "duplicate_removal_result.csv"
+                        relative_duplicate_csv = step3_duplicate_csv.relative_to(step3_dir)
+                        
+                        # Cấu hình duplicate removal
+                        similarity_threshold = args.step3_similarity_threshold
+                        match_ratio = args.step3_match_ratio
+                        min_matches = args.step3_min_matches
+                        backup_duplicates = not args.step3_no_backup_duplicates  # Nếu có flag no-backup thì False
+                        
+                        stats = remove_duplicates(
+                            folder_path=str(relative_input),
+                            output_csv=str(relative_duplicate_csv),
+                            similarity_threshold=similarity_threshold,
+                            match_ratio=match_ratio,
+                            min_matches=min_matches,
+                            backup_duplicates=backup_duplicates,
+                            verbose=True
+                        )
+                        
+                        print(f"\n[OK] Duplicate removal completed!")
+                        print(f"   Kept: {stats['kept']} images")
+                        print(f"   Removed: {stats['removed']} duplicates")
+                        print(f"   Result CSV: {step3_duplicate_csv}")
+                    else:
+                        print(f"\n[SKIP] Skipping duplicate removal")
                     
                     print(f"\n[OK] Step 3 completed!")
                     print(f"   Output CSV: {step3_output_csv}")

@@ -46,8 +46,8 @@ Examples:
     
     parser.add_argument(
         '--config',
-        default='config/config.yaml',
-        help='Path to configuration file (default: config/config.yaml)'
+        default='config/config_polygon_example.yaml',
+        help='Path to configuration file (default: config/config_polygon_example.yaml)'
     )
     
     parser.add_argument(

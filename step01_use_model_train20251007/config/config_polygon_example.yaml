@@ -20,7 +20,7 @@ roi:
 
 # Cấu hình frame sampling
 frame_sampling:
-  skip_frames: 5  # Xử lý 1 frame mỗi 5 frames
+  skip_frames: 1  # Xử lý 1 frame mỗi 5 frames
 
 # Cấu hình model
 model:
@@ -39,4 +39,27 @@ output:
 video:
   input_fps: 30
   output_fps: 30
+
+# Cấu hình tracking - Loại bỏ duplicate biển số
+tracking:
+  enabled: true            # Bật/tắt tracking
+  
+  # Matching parameters
+  iou_threshold: 0.35        # Ngưỡng IoU để match detection với track (0.3-0.5)
+                            # Càng cao → càng chặt chẽ → ít nhầm lẫn
+                            # Khuyến nghị: 0.35 cho 2-3 xe đồng thời
+  
+  # Track lifecycle management
+  max_age: 3               # Số frames tối đa không detect → xóa track
+                            # Khuyến nghị: 8-10 frames (~0.3s @30fps)
+                            # Video xe biến mất nhanh → giá trị thấp OK
+  
+  min_hits: 1                # Số lần detect tối thiểu → track confirmed
+                            # Khuyến nghị: 2-3
+                            # Video ít occlusion → 2 là đủ
+  
+  # Saving strategy
+  save_best: true            # Lưu ảnh có confidence cao nhất
+                            # true: 1 ảnh/track (best quality)
+                            # false: Lưu ảnh cuối cùng
 

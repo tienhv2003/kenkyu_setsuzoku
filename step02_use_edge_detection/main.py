@@ -149,10 +149,22 @@ Examples:
     # Step 1: Auto-cut với Canny edge detection
     if not args.skip_auto_cut:
         print("\n🔹 BƯỚC 1: AUTO-CUT VỚI CANNY EDGE DETECTION")
+        
+        # Lấy cấu hình từ config
+        processing_config = config.get('processing', {})
+        canny_config = processing_config.get('canny', {})
+        contour_config = processing_config.get('contour', {})
+        crop_margin = canny_config.get('crop_margin', 0.2)  # Mặc định 20% margin để bỏ phần cắt viền
+        skip_canny = canny_config.get('skip_canny_detection', False)  # Bỏ qua Canny detection
+        
         results_cut = process_images_from_folder(
             input_dir, 
             output_cut_dir,
-            verbose=args.verbose
+            verbose=args.verbose,
+            canny_config=canny_config,
+            contour_config=contour_config,
+            crop_margin=crop_margin,
+            skip_canny=skip_canny
         )
         
         if results_cut['success'] == 0:
